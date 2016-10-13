@@ -1,0 +1,53 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script>
+$(function() { 
+  $('#back').click(function(){
+    var loader = '<div class="loader-page"></div>';
+    google.script.run.showSidebar_Menu();
+    $('body').prepend(loader);
+  });
+  $('#informacion').click(function(){
+    var loader = '<div class="loader-page"></div>';
+    google.script.run.showSidebar_Informacion();
+    $('body').prepend(loader);
+  });
+  $('#explorador').click(function(){
+    var loader = '<div class="loader-page"></div>';
+    google.script.run.showSidebar();
+    $('body').prepend(loader);
+  });
+  $('#bu').click(function(){
+    var loader = '<div class="loader-page"></div>';
+    google.script.run.showSeleccionUnidadNegocio();
+    $('body').prepend(loader);
+  });
+  $('#paneles').click(function(){
+    var loader = '<div class="loader-page"></div>';
+    google.script.run.ShowSideBar_PFinancierosEt4();
+    $('body').prepend(loader);
+  });
+});
+function CollapsibleDiv(id, element) {
+    var arrowUp = String.fromCharCode(9650);
+    var arrowDown = String.fromCharCode(9660);
+    var iden = $('#'+id);
+    var div = iden.prev();
+    if(element){
+      $(element).find('p').toggleClass("active");
+    }
+    if(!(iden.hasClass('panel-collapsed'))) {
+      iden.slideDown("slow");
+      iden.addClass('panel-collapsed');
+      if(div.is('div'))div.find('button').addClass('w3-active');
+      else div.addClass('w3-active');
+      div.find("span.arrow").text(arrowUp);
+    }else{
+      iden.slideUp("slow");
+      iden.removeClass('panel-collapsed');
+      if(div.is('div'))div.find('button').removeClass('w3-active');
+      else div.removeClass('w3-active');
+      div.find("span.arrow").text(arrowDown);
+    }
+}
+</script>
+
