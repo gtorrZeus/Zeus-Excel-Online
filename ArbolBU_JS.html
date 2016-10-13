@@ -1,0 +1,258 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script type="text/javascript">
+   $(function() {
+       $(window).load(function() {
+         CargaEmail();
+         Libros();
+         //CargaArbol();
+         CargaArbol2();
+         //ObtenerBU_email();
+       });
+
+       $('#libros').change(function onExecuteChange(){
+         $('#error').remove();
+         var id_seleccionado = $('option:selected', this).val();
+         var loading = "<div class='loading'>Construyendo árbol</div>";
+         var spinner = "<div class='loader'></div>";
+         $("div.acidjs-css3-treeview").empty();
+         $("div.acidjs-css3-treeview").append(loading, spinner);
+         google.script.run.withSuccessHandler(ChangeTree)
+         .withFailureHandler(function(msg) {
+            showError(msg, $('#w3-row-main'));
+         }).ObtenerArbolBU(id_seleccionado);
+       });
+      
+      $(document).on('click','#btn-update',ObtenerBU_sel);
+      $(document).on('click','i[data-type="cerrar"]', function(){
+        $('#error').remove();
+        $('#sidebar-status-check').hide(600);
+        $('#sidebar-status-check').remove();
+      });
+      $('#back').click(function(){
+        var loader = '<div class="loader-page"></div>';
+        google.script.run.showSidebar_Menu();
+        $('body').prepend(loader);
+      });
+   });
+   
+    function ocultar() {
+        var checkbox = $(this), hijos = checkbox.parent().find('ul');
+
+        if (checkbox.is(":checked")) {
+            hijos.hide();
+        }
+        else {
+            hijos.show();
+            $('.open:checked').each(ocultar);
+        }
+    }
+    
+    function CargaArbol2(){   
+    google.script.run.withSuccessHandler(
+    function(lista_funciones) {
+        google.script.run.withSuccessHandler(
+                function(email) {
+                     google.script.run.withSuccessHandler(
+                           function(array) {
+                                   //Etiquetas que construyen el arbol de unidades
+                                     $("div.acidjs-css3-treeview").html(lista_funciones);
+                                   //Verifica si el usuario tiene unidades seleccionadas
+                                     if(array.length > 0){
+                                         jQuery.each(array,function(i, val){
+                                            $("div.acidjs-css3-treeview input.seleccion").each(function(){
+                                                var value = $(this).val();
+                                                if(value == val)
+                                                {
+                                                  $(this).prop("checked",true);
+                                                }
+                                            });
+                                          });
+                                      }
+                                    //Animaciones del arbol (ocultar, desocultar, checkear hijos si un padre es checkeado...
+                                     $(".open").change(ocultar);
+                          
+                                     $(".seleccion").change(function () {
+                                     var checkbox = $(this), hijos = checkbox.parent().find('ul');
+                                     hijos.find('.seleccion').prop('checked', checkbox.prop('checked'))
+                                     });
+
+                                     $('.seleccion').change(function(e) {
+                          
+                                            var checked = $(this).prop("checked"),
+                                            container = $(this).parent(),
+                                            siblings = container.siblings();
+                                            
+                                            container.find('.seleccion').prop({
+                                            indeterminate: false,
+                                            checked: checked
+                                            });
+                                        
+                                            function checkSiblings(el) {
+                                        
+                                                  var parent = el.parent().parent(),
+                                                      all = true;
+                                              
+                                                  el.siblings().each(function() {
+                                                    return all = ($(this).children('.seleccion').prop("checked") === checked);
+                                                  });
+                                              
+                                                  if (all && checked) {
+                                              
+                                                    parent.children('.seleccion').prop({
+                                                      indeterminate: false,
+                                                      checked: checked
+                                                    });
+                                              
+                                                    checkSiblings(parent);
+                                              
+                                                  } else if (all && !checked) {
+                                              
+                                                    parent.children('.seleccion').prop("checked", checked);
+                                                    parent.children('.seleccion').prop("indeterminate", (parent.find('.seleccion:checked').length > 0));
+                                                    checkSiblings(parent);
+                                              
+                                                  } else {
+                                              
+                                                    el.parents("li").children('.seleccion').prop({
+                                                      indeterminate: true,
+                                                      checked: false
+                                                    });
+                                              
+                                                  }
+                                        
+                                            }
+                                        
+                                            checkSiblings(container);
+                                      });       
+                           }).withFailureHandler(function(msg) { showError(msg, $('#w3-row-main'));}).ObtenerBUsuario(email);
+                }).withFailureHandler(function(msg) { showError(msg, $('#w3-row-main'));}).getEmailUsarioActivo();
+     }).withFailureHandler(function(msg) { showError(msg, $('#w3-row-main'));}).ObtenerArbolBU();
+  }
+  
+  function ObtenerBU_sel()
+  {    
+        google.script.run.withSuccessHandler(
+          function(email) {
+                $('#error').remove();
+                var alerts = "<div id='sidebar-status-check' class='w3-row-clear pad20'>"
+                              +"<span class='loading-text'><i class='material-icons w3-large14 w3-left-align'>check</i>&nbsp;Unidades de negocio actualizadas<i data-type='cerrar' class='material-icons w3-large14 full-right'>close</i></span>"
+                            +"</div>";
+                if($('#sidebar-status-check').length){
+                  $('#sidebar-status-check').remove();
+                }            
+                $('#w3-row-main').after(alerts);
+                $('#sidebar-status-check').hide().fadeIn("slow");
+                var idSelector = function() { return this.value; };
+                var BU_check = $(".seleccion:checkbox:checked").map(idSelector).get();
+                //var BU_uncheck = $(".seleccion:checkbox:not(:checked)").map(idSelector).get();
+                google.script.run.RegistrarBUsuario(BU_check, email);//Registra los nuevos BU seleccionados.Pd:se podría mejorar retornando un estado de inserción y cambiando la alerta de actualización en una función withSuccessHandler
+                google.script.run.Recacular_libro();//Recalcula todas las formulas de libro actual.
+                $('#sidebar-status-check').delay(3000).hide(600);//Oculta la notificación que certifica que los bu fueron actualizados
+          }).withFailureHandler(function(msg) { showError(msg, $('#w3-row-main'));}).getOwnerEmail();
+  }
+  
+  function CargaEmail()
+  {
+      google.script.run.withSuccessHandler(
+      function(email) {
+        google.script.run.RegistraUsuarioBU(email);
+      }).withFailureHandler(function(msg) { 
+        showError(msg, $('#w3-row-main'));
+      }).getEmailUsarioActivo();
+  }
+
+  function Libros(){
+       google.script.run.withSuccessHandler(
+       function(etiquetas){
+       document.getElementById('libros').innerHTML = etiquetas;
+       }).withFailureHandler(function(msg) {
+         showError(msg, $('#w3-row-main'));
+       }).ObtenerLibros();
+  }
+  
+  function showError(msg, element){
+    var div = $('<div id="error" class="w3-row-clear pad20"><span class="loading-text"><i class="material-icons w3-large14 w3-left-align">error</i>&nbsp;'+ msg +'</span></div>');
+    $(element).after(div);
+    $("#error").fadeIn("slow");
+    $('#error').delay(10000).hide(600);
+  }
+  
+  function ChangeTree(etiquetas_bu){
+    google.script.run.withSuccessHandler(
+                function(email) {
+                     google.script.run.withSuccessHandler(
+                           function(array) {
+                                 $("div.acidjs-css3-treeview").html(etiquetas_bu);
+                                 //Verifica si el usuario tiene unidades seleccionadas
+                                 if(array.length > 0){
+                                   jQuery.each(array,function(i, val){
+                                     $("div.acidjs-css3-treeview input.seleccion").each(function(){
+                                       var value = $(this).val();
+                                       if(value == val)
+                                       {
+                                         $(this).prop("checked",true);
+                                       }
+                                     });
+                                   });
+                                 }
+                                 $(".open").change(ocultar);
+                      
+                                 $(".seleccion").change(function () {
+                                 var checkbox = $(this), hijos = checkbox.parent().find('ul');
+                                 hijos.find('.seleccion').prop('checked', checkbox.prop('checked'))
+                                 });
+                                  
+                                 //Sample Code
+                                  
+                                 $('.seleccion').change(function(e) {
+                      
+                                var checked = $(this).prop("checked"),
+                                container = $(this).parent(),
+                                siblings = container.siblings();
+                          
+                                container.find('.seleccion').prop({
+                                  indeterminate: false,
+                                  checked: checked
+                                });
+                      
+                                function checkSiblings(el) {
+                      
+                                var parent = el.parent().parent(),
+                                    all = true;
+                            
+                                el.siblings().each(function() {
+                                  return all = ($(this).children('.seleccion').prop("checked") === checked);
+                                });
+                            
+                                if (all && checked) {
+                            
+                                  parent.children('.seleccion').prop({
+                                    indeterminate: false,
+                                    checked: checked
+                                  });
+                            
+                                  checkSiblings(parent);
+                            
+                                } else if (all && !checked) {
+                            
+                                  parent.children('.seleccion').prop("checked", checked);
+                                  parent.children('.seleccion').prop("indeterminate", (parent.find('.seleccion:checked').length > 0));
+                                  checkSiblings(parent);
+                            
+                                } else {
+                            
+                                  el.parents("li").children('.seleccion').prop({
+                                    indeterminate: true,
+                                    checked: false
+                                  });
+                            
+                                }
+                              
+                                }
+                              
+                                checkSiblings(container);
+                                });
+                          }).withFailureHandler(function(msg) { showError(msg, $('#w3-row-main'));}).ObtenerBUsuario(email);
+                }).withFailureHandler(function(msg) { showError(msg, $('#w3-row-main'));}).getEmailUsarioActivo();
+  }
+</script>

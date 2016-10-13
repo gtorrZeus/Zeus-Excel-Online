@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- para usar el css indicado -->
+<?!= include('ArbolBU_CSS') ?>
+<script>parent.document.getElementById('userHtmlFrame').style.overflowY = "hidden";</script>
+</head>
+<body>
+<!-- Contenido del Sidebar-->
+<div class="w3-container w3-animate-zoom">
+  <div class="cabecera"><label class="titulo">Selección unidades de negocio</label><i id="back" class="fa fa-home fa-2 w3-home" aria-hidden="true"></i></div>
+    <div id="w3-row-main" class="w3-row">
+      <div class="w3-col pad20" style ="width:96%;">
+        <span class="w3-tiny-12 label-text">Seleccionar un libro</span>
+        <select id="libros" class="w3-select w3-border w3-tiny-11">
+          <option selected="selected" value="">Cargando...</option>
+        </select>
+      </div>
+      <div class="w3-col pad20" style ="width:96%;margin-top:4%;">
+        <span class="w3-tiny-12 label-text">Unidades de Negocio</span>
+        <fieldset>
+          <div class="acidjs-css3-treeview">
+            <div class="loading">Cargando</div>
+            <div class="spinner">
+              <div class="rect1"></div>
+              <div class="rect2"></div>
+              <div class="rect3"></div>
+              <div class="rect4"></div>
+              <div class="rect5"></div>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+      <div class="w3-btn-group w3-b2">
+        <button class="w3-btn w3-round w3-tiny-11 w3-zeus-cerrar" onclick="google.script.host.close()">Cerrar</button>
+        <button class="w3-btn w3-round w3-tiny-11 w3-zeus-exec" id="btn-update">Actualizar</button>
+      </div>
+    </div>
+</div>
+<div class="footer">
+<img src="data:image/png;base64,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" style="display: inline-block; float: left; margin-left:10px;"> <label class="branding-text">Complementos Zeus Tecnología S.A.</label>
+</div>
+<!-- para usar el css indicado -->
+<?!= include('ArbolBU_JS') ?>
+</body>
+</html>
+
