@@ -1,0 +1,174 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+<script type="text/javascript">
+  /**
+   * Run initializations on sidebar load.
+   */
+  $(function() {
+      $(window).load(function() {
+        CargaCombo();
+        CargaLista();
+      });
+      
+      $('#dialog-action-select').change(onExecuteChange);
+      
+      $(document).on('click','ul li',function(){
+         $("#error").remove();
+         var formula = $(this).data('funcion');
+         var formulaR1 = replaceAll(formula.toString(),'@', '"');
+         var aplicacion = $(this).data('aplicacion');
+         var adicional = $(this).find('a').attr('title');
+         var nombre = $(this).find('a').text();
+         google.script.run.withFailureHandler(function(msg) {
+              showError(msg, $('#w3-row-main'));
+         }).RegistrarFuncion({aplicacion: aplicacion, nombre: nombre, formula: formulaR1, adicional: adicional});
+         enviar_a_Celda(formula);
+      });
+      
+      $(document).on('click','li span',function(e){
+         $("#error").remove();
+         e.stopPropagation(); 
+         $(this).parent().css("display","none");
+      });
+      
+      $('input[name=quantity]').blur(function(){
+         $("#error").remove();
+         var index = this.value;
+         google.script.run.withSuccessHandler(function(explorador){
+           $('#listavalores').html(explorador);
+         }).withFailureHandler(function(msg){
+           showError(msg, $('#w3-row-main'));
+         }).Explorador_Funciones(index);
+      });
+      
+      $('#back').click(function(){
+        var loader = '<div class="loader-page"></div>';
+        google.script.run.showSidebar_Menu();
+        $('body').prepend(loader);
+      });
+  });
+    
+ function CargaCombo(){   
+    google.script.run
+          .withSuccessHandler( function(lista_funciones) {
+              $('#dialog-action-select').html(lista_funciones);
+          })
+          .withFailureHandler( function(msg) {
+              showError(msg, $('#w3-row-main'));
+          }).Funciones();
+ }
+ 
+ function CargaLista(){   
+    google.script.run
+          .withSuccessHandler( function(lista_funciones) {
+              $('#listavalores').html(lista_funciones);
+          })
+          .withFailureHandler(function(msg) {
+              showError(msg, $('#w3-row-main'));
+          }).Explorador_Funciones();
+ }
+ 
+  /**
+   * Calls the server to modify the sheet.
+   * Determines the user-specified action (create a sheet, copy the active
+   * sheet, clear the active sheet) and asks the server to execute it. The
+   * dialog is then closed.
+   */
+   
+  function onExecuteChange() {
+    $("#error").remove();
+    var formula = $(this).find(':selected').val();
+    var formulaR1 = replaceAll(formula.toString(),'@', '"');
+    var aplicacion = $(this).find(':selected').data('app');
+    var adicional = $(this).find(':selected').attr('title');
+    var nombre = $(this).find(':selected').text();
+    /*Guardamos la función*/
+    google.script.run.withFailureHandler(function(msg) {
+      showError(msg, $('#w3-row-main'));
+    }).RegistrarFuncion({aplicacion: aplicacion, nombre: nombre, formula: formulaR1, adicional: adicional});
+    enviar_a_Celda(formula);
+    $('#dialog-action-select').val(formula);    
+  }
+  
+  /**
+    * Llama al servidor para modificar la hoja.
+    * Cambie el valor de la celda seleccionada con el valor en el    
+   */
+  function enviar_a_Celda(value) {     
+      value = replaceAll(value.toString(),'@', '"');
+      //las funciones que provienen de la base de datos tienen como separador de listas la coma
+      value = replaceAll(value.toString(),',', ';');
+      
+      // Send the value to the server and handle the response.
+      google.script.run.setActiveValue(value);
+  }
+
+  function replaceAll(str, find, replace) {
+      return str.replace(new RegExp(find, 'g'), replace);
+  }
+  
+  function showError(msg, element){
+    var div = $('<div id="error" class="w3-row-clear pad20"><span class="loading-text"><i class="material-icons w3-large14 w3-left-align">error</i>&nbsp;'+ msg +'</span></div>');
+    $(element).after(div);
+    $("#error").fadeIn("slow");
+    $('#error').delay(10000).hide(600);
+  }
+ 
+  
+  /**
+   * Calls the server to retrieve information from the sheet.
+   * Gets the value in the active cell, which is then placed in the
+   * sidebar text field.
+   */
+  function onPullClick() {
+    this.disabled = true;
+    // Gather any information that needs to be sent to the server here.
+    // Send the value to the server and handle the response.
+    google.script.run
+        .withSuccessHandler(
+          function(msg, element) {
+            // Respond to success conditions here.
+            $('#sidebar-value').val(msg);
+            showStatus('Valor de la celda actual.');
+            element.disabled = false;
+          })
+        .withFailureHandler(
+          function(msg, element) {
+            // Respond to failure conditions here.
+            showStatus(msg, 'error');
+            element.disabled = false;
+          })
+        .withUserObject(this)
+        .getActiveValue();
+  }
+
+  /**
+   * Calls the server to modify the sheet.
+   * Replace the currently selected cell value with the value in the
+   * sidebar text field.
+   */
+  function onPutClick() {
+    this.disabled = true;
+
+    // Gather any information that needs to be sent to the server here.
+    var value = $('#sidebar-value').val();
+
+    // Send the value to the server and handle the response.
+    google.script.run
+        .withSuccessHandler(
+          function(msg, element) {
+            // Respond to success conditions here.
+            showStatus('Valor enviado a la celda activa: ' + value);
+            element.disabled = false;
+          })
+        .withFailureHandler(
+          function(msg, element) {
+            // Respond to failure conditions here.
+            showStatus(msg, 'error');
+            element.disabled = false;
+          })
+        .withUserObject(this)
+        .setActiveValue(value);
+  }
+
+</script>
