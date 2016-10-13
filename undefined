@@ -1,0 +1,5 @@
+function myFunction() {
+  var a = Wservice.ejecutar_Query("Exec [Zeus®SpExcel_LibrosBU] @vchUsuario= 'zeussql'","zeussql");
+  var i = a[0];
+  var o = 0
+}
