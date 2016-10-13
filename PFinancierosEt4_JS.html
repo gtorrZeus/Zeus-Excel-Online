@@ -1,0 +1,54 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script>
+$(function() {
+  $(window).load(function(){
+    CargarPanelFinanciero();
+  });  
+  $('#back').click(function(){
+    var loader = '<div class="loader-page"></div>';
+    google.script.run.showSidebar_Menu();
+    $('body').prepend(loader);
+  });
+});
+function CollapsibleDiv(id) {
+    var arrowUp = String.fromCharCode(9650);
+    var arrowDown = String.fromCharCode(9660);
+    var iden = $('#'+id);
+    var div = iden.prev();
+    if(!(iden.hasClass('panel-collapsed'))) {
+      iden.slideDown("slow");
+      iden.addClass('panel-collapsed');
+      div.find("span").text(arrowUp);
+    }else{
+      //iden.slideToggle("slow");
+      iden.slideUp("slow");
+      iden.removeClass('panel-collapsed');
+      div.find("span").text(arrowDown);
+    }
+}
+
+function CargarPanelFinanciero(){
+   var paneles = sessionStorage.getItem("Panel");
+   if(paneles !== null)
+   {
+     $('#panel').html(paneles);
+   }
+   else
+   {
+     google.script.run.withSuccessHandler(function(etiquetas){
+       sessionStorage.setItem("Panel", etiquetas);
+       $('#panel').html(etiquetas);
+     }).withFailureHandler( function(msg) {
+        showError(msg, $('#panel'));
+     }).ObtenerLibrosPUsuario();
+   }
+}
+
+function showError(msg, element){
+  var div = $('<div id="error" class="w3-row-clear pad20 w3-red"><span class="loading-text"><i class="material-icons w3-large14 w3-left-align">error</i>&nbsp;'+ msg +'</span></div>');
+  $(element).after(div);
+  $("#error").fadeIn("slow");
+  $('#error').delay(10000).hide(600);
+}
+</script>
+
