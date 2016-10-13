@@ -1,0 +1,155 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script>
+  /**
+   * Run initializations on dialog load.
+   */
+  $(function() {
+      $(window).load(function() {
+        Empresas();
+        //Aplicaciones();
+      });
+      
+      google.script.run.withSuccessHandler( function(fecha_informe) {
+          if(fecha_informe == ''){
+            fecha_informe = FechaCorteNumero();
+            $('#dialog-data-select').val(fecha_informe);
+            $('#dialog-data-corte').val(fecha_informe);
+          }else{
+            fecha_informe = replaceAll(fecha_informe.toString(),'/', '-');
+            
+            $('#dialog-data-select').val(fecha_informe);
+            $('#dialog-data-corte').val(fecha_informe);
+          }
+      }).withFailureHandler( function(msg) {
+          showError(msg, $('#w3-row-main'));
+      }).getPropertyFechaInforme();
+      
+       //Event change selector
+       $('#empresas').change(function(){
+         $('#error').remove();
+         var empresa = this.value;
+         var loading = "<div class='w3-center w3-tiny-11'>Cargando aplicaciones...</div><div class='loader'></div>";
+         $('#aplicaciones').empty();
+         $('#aplicaciones').append(loading);
+         google.script.run.withSuccessHandler(function(){
+           google.script.run.withSuccessHandler(function(){
+             google.script.run.withSuccessHandler(function(aplicaciones){
+                 $('#aplicaciones').html(aplicaciones);
+                 var radios = $('input:radio[name=application]');
+                 if(radios.is(':checked') === false) {
+                   radios.first().prop('checked', true);
+                 }
+             }).withFailureHandler(function(msg){showError(msg, $('#w3-row-main'));}).ObtenerAplicaciones(empresa);
+           }).withFailureHandler(function(msg){showError(msg, $('#w3-row-main'));}).setP_CurrentAplication();
+         }).withFailureHandler(function(msg){showError(msg, $('#w3-row-main'));}).setActualEnterprise(empresa);
+       });
+       //Click events
+       $(document).on('click', 'button', function(){
+           var id = $(this).next().attr('id');
+           CollapsibleDiv(id);
+       });
+       $(document).on('click','input:radio[name=application]', function(e){
+           e.stopPropagation();
+           if($(this).is(':checked')){
+             var application = $(this).val();
+             google.script.run.withFailureHandler(function(msg){showError(msg, $('#w3-row-main'));}).setP_CurrentAplication(application);
+           }
+       });
+       $('#dialog-execute-button').click(onExecuteClick);
+       $('#back').click(function(){
+        var loader = '<div class="loader-page"></div>';
+        google.script.run.showSidebar_Menu();
+        $('body').prepend(loader);
+       });
+       $(document).on('click', 'i[data-type="cerrar"]', function(){
+         $('#error').remove();
+         $(this).closest('div').hide(600);
+         $(this).closest('div').remove();
+       });
+  });
+
+  function onExecuteClick() {
+      $('#error').remove();
+      if(!$("#sidebar-status-check").length && !$("#sidebar-status-load").length)
+      {
+        var alerts = "<div id='sidebar-status-check' class='w3-row-clear pad20'>"
+                        +"<span class='loading-text'><i class='material-icons w3-large14 w3-left-align'>check</i>&nbsp;Campos actualizados<i data-type='cerrar' class='material-icons w3-large14 full-right w3-cl'>close</i></span>"
+                    +"</div>"
+                        +"<br/>"
+                     +"<div id='sidebar-status-load' class='w3-row-clear pad20 top0'>"
+                        +"<span class='loading-text'><i class='material-icons w3-large14 w3-spin w3-left-align'>refresh</i>&nbsp;Actualizando libro<i data-type='cerrar' class='material-icons w3-large14 full-right w3-cl'>close</i></span>"
+                     +"</div>";
+        $('#w3-row-main').after(alerts);
+        $('.w3-row-clear').hide().fadeIn("slow");
+      }else{
+        $("#sidebar-status-check").fadeIn("slow");
+        $("#sidebar-status-load").fadeIn("slow");
+      }
+      // Gather any information that needs to be sent to the server here.
+      var action = $('#dialog-data-select').val();    
+      action = replaceAll(action.toString(),'-', '/');
+      // asignamos la fecha del informe y recalculamos el libro
+      google.script.run.setPropertyFechaInforme(action);
+      google.script.run.withSuccessHandler(function(){
+        google.script.run.withFailureHandler(function(msg){showError(msg, $('#w3-row-main'));}).Recacular_libro();
+      }).withFailureHandler(function(msg){showError(msg, $('#w3-row-main'));}).ActualizarConfiguraciones();
+      
+      $('#sidebar-status-check').delay(3000).hide(600);
+      $('#sidebar-status-load').delay(15000).hide(600);
+  }
+  
+  function replaceAll(str, find, replace) {
+      return str.replace(new RegExp(find, 'g'), replace);
+  }
+  
+  function Empresas(){
+    google.script.run.withSuccessHandler(function(options){
+      google.script.run.withSuccessHandler(function(empresa){
+          $('#empresas').html(options);
+          if(empresa!==undefined)$('#empresas option[value='+empresa+']').prop('selected', 'selected');
+          Aplicaciones(empresa);
+      }).withFailureHandler(function(msg){
+        showError(msg, $('#w3-row-main'));
+      }).getP_CurrentEnterprise();
+    }).withFailureHandler(function(msg) {
+      showError(msg, $('#w3-row-main'));
+    }).ObtenerEmpresas();
+  }
+  
+  function Aplicaciones(e){
+    google.script.run.withSuccessHandler(function(list){
+      google.script.run.withSuccessHandler(function(app){
+              $('#aplicaciones').html(list);
+              var radios = $('input:radio[name=application]');
+              if(radios.is(':checked') === false) {
+                 radios.filter('[value='+app+']').prop('checked', true);
+              }
+      }).withFailureHandler( function(msg) {
+        showError(msg, $('#w3-row-main'));
+      }).getP_CurrentAplication();
+    }).withFailureHandler( function(msg) {
+      showError(msg, $('#w3-row-main'));
+    }).ObtenerAplicaciones(e);
+  }
+  
+  function CollapsibleDiv(id) {
+    var iden = $('#'+id);
+    var button = iden.prev();
+    if(!(iden.hasClass('panel-collapsed'))) {
+      iden.slideDown("slow");
+      iden.addClass('panel-collapsed');
+      button.find("i").text('expand_less');
+    }else{
+      iden.slideUp("slow");
+      iden.removeClass('panel-collapsed');
+      button.find("i").text('expand_more');
+    }
+}
+
+  function showError(msg, element){
+    var div = $('<div id="error" class="w3-row-clear pad20"><span class="loading-text"><i class="material-icons w3-large14 w3-left-align">error</i>&nbsp;'+ msg +'</span></div>');
+    $(element).after(div);
+    $("#error").fadeIn("slow");
+    $('#error').delay(10000).hide(600);
+  }
+</script>
